@@ -2,15 +2,16 @@ load("@io_bazel_rules_kotlin//kotlin:kotlin.bzl", "kt_android_library", "kt_jvm_
 load("@robolectric//bazel:robolectric.bzl", "robolectric_repositories")
 load("//bazel:kotlin_lib.bzl", "native_lib_name")
 
-def _internal_kt_test(name, srcs, deps = [], data = [], jvm_flags = []):
+def _internal_kt_test(name, srcs, deps = [], data = [], jvm_flags = [], repo = None):
     # This is to work around the issue where we have specific implementation functionality which
     # we want to avoid consumers to use but we want to unit test
     dep_srcs = []
+    repo_prefix = '@' + repo if repo else ''
     for dep in deps:
         # We'll resolve only the targets in `//library/kotlin/io/envoyproxy/envoymobile`
-        if dep.startswith("//library/kotlin/io/envoyproxy/envoymobile"):
+        if dep.startswith(repo_prefix + "//library/kotlin/io/envoyproxy/envoymobile"):
             dep_srcs.append(dep + "_srcs")
-        elif dep.startswith("//library/java/io/envoyproxy/envoymobile"):
+        elif dep.startswith(repo_prefix + "//library/java/io/envoyproxy/envoymobile"):
             dep_srcs.append(dep + "_srcs")
 
     kt_jvm_test(
@@ -18,19 +19,21 @@ def _internal_kt_test(name, srcs, deps = [], data = [], jvm_flags = []):
         test_class = "io.envoyproxy.envoymobile.bazel.EnvoyMobileTestSuite",
         srcs = srcs + dep_srcs,
         deps = [
-            "//bazel:envoy_mobile_test_suite",
+            repo_prefix+"//bazel:envoy_mobile_test_suite",
             "@maven//:org_assertj_assertj_core",
             "@maven//:junit_junit",
             "@maven//:org_mockito_mockito_inline",
             "@maven//:org_mockito_mockito_core",
         ] + deps,
-        data = data,
+        data = [repo_prefix + d for d in data],
         jvm_flags = jvm_flags,
     )
 
 # A basic macro to make it easier to declare and run kotlin tests which depend on a JNI lib
 # This will create the native .so binary (for linux) and a .jnilib (for OS X) look up
-def envoy_mobile_jni_kt_test(name, srcs, native_deps = [], deps = []):
+def envoy_mobile_jni_kt_test(name, srcs, native_deps = [], deps = [], repo = None):
+    repo_prefix = 'external/' + repo + '/' if repo else ''
+    print("HERE: -Djava.library.path={}library/common/jni".format(repo_prefix))
     lib_name = native_lib_name(native_deps[0])[3:]
     _internal_kt_test(
         name,
@@ -38,9 +41,10 @@ def envoy_mobile_jni_kt_test(name, srcs, native_deps = [], deps = []):
         deps,
         data = native_deps,
         jvm_flags = [
-            "-Djava.library.path=library/common/jni",
+            "-Djava.library.path={}library/common/jni".format(repo_prefix),
             "-Denvoy_jni_library_name={}".format(lib_name),
         ],
+	repo = repo,
     )
 
 # A basic macro to make it easier to declare and run kotlin tests
