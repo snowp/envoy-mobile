@@ -42,6 +42,7 @@ envoy_mobile_swift_test(
     deps = [
         "//library/objective-c:envoy_engine_objc_lib",
     ],
+    flaky = True,
 )
 
 envoy_mobile_swift_test(
