@@ -36,7 +36,7 @@ public:
    * @param config, the Envoy bootstrap configuration to use.
    * @param log_level, the log level.
    */
-  envoy_status_t run(std::string config, std::string log_level);
+  envoy_status_t run(std::string config, std::string log_level, std::string log_sink_config);
 
   /**
    * Immediately terminate the engine, if running.
@@ -113,7 +113,7 @@ public:
   void drainConnections();
 
 private:
-  envoy_status_t main(std::string config, std::string log_level);
+  envoy_status_t main(std::string config, std::string log_level, std::string log_sink_config);
 
   Event::Dispatcher* event_dispatcher_{};
   Stats::ScopePtr client_scope_;
@@ -128,7 +128,7 @@ private:
   Event::ProvisionalDispatcherPtr dispatcher_;
   // Used by the cerr logger to ensure logs don't overwrite each other.
   absl::Mutex log_mutex_;
-  Logger::EventTrackingDelegatePtr log_delegate_ptr_{};
+  Logger::BaseSinkDelegatePtr log_delegate_ptr_{};
   Server::Instance* server_{};
   Server::ServerLifecycleNotifier::HandlePtr postinit_callback_handler_;
   std::atomic<envoy_network_t>& preferred_network_;

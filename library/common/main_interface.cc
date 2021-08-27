@@ -182,11 +182,11 @@ envoy_engine_t init_engine(envoy_engine_callbacks callbacks, envoy_logger logger
   return 1;
 }
 
-envoy_status_t run_engine(envoy_engine_t, const char* config, const char* log_level) {
+envoy_status_t run_engine(envoy_engine_t, const char* config, const char* log_level, const char* log_sink_config) {
   // This will change once multiple engine support is in place.
   // https://github.com/lyft/envoy-mobile/issues/332
   if (auto e = engine()) {
-    e->run(config, log_level);
+    e->run(config, log_level, log_sink_config);
     return ENVOY_SUCCESS;
   }
 

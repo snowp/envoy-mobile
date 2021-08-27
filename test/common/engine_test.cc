@@ -48,7 +48,7 @@ layered_runtime:
 struct EngineHandle {
   EngineHandle(envoy_engine_callbacks callbacks, const std::string& level) {
     init_engine(callbacks, {}, {});
-    run_engine(0, MINIMAL_TEST_CONFIG.c_str(), level.c_str());
+    run_engine(0, MINIMAL_TEST_CONFIG.c_str(), level.c_str(), "");
   }
 
   ~EngineHandle() { terminate_engine(0); }

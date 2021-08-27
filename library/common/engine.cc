@@ -1,8 +1,10 @@
 #include "library/common/engine.h"
 
+#include "common/lambda_logger_delegate.h"
 #include "envoy/stats/histogram.h"
 
 #include "source/common/common/lock_guard.h"
+#include "source/common/config/utility.h"
 
 #include "library/common/bridge/utility.h"
 #include "library/common/config/internal.h"
@@ -27,16 +29,19 @@ Engine::Engine(envoy_engine_callbacks callbacks, envoy_logger logger,
   Envoy::Api::External::registerApi(std::string(envoy_event_tracker_api_name), &event_tracker_);
 }
 
-envoy_status_t Engine::run(const std::string config, const std::string log_level) {
+envoy_status_t
+Engine::run(const std::string config, const std::string log_level,
+            const std::string log_sink_config) {
   // Start the Envoy on the dedicated thread. Note: due to how the assignment operator works with
   // std::thread, main_thread_ is the same object after this call, but its state is replaced with
   // that of the temporary. The temporary object's state becomes the default state, which does
   // nothing.
-  main_thread_ = std::thread(&Engine::main, this, std::string(config), std::string(log_level));
+  main_thread_ = std::thread(&Engine::main, this, std::string(config), std::string(log_level), log_sink_config);
   return ENVOY_SUCCESS;
 }
 
-envoy_status_t Engine::main(const std::string config, const std::string log_level) {
+envoy_status_t Engine::main(const std::string config, const std::string log_level,
+                            const std::string log_sink_config) {
   // Using unique_ptr ensures main_common's lifespan is strictly scoped to this function.
   std::unique_ptr<EngineCommon> main_common;
   const std::string name = "envoy";
@@ -69,13 +74,34 @@ envoy_status_t Engine::main(const std::string config, const std::string log_leve
       server_ = main_common->server();
       event_dispatcher_ = &server_->dispatcher();
 
+      std::vector<Logger::LogSinkPtr> log_sinks;
       if (logger_.log) {
-        log_delegate_ptr_ =
-            std::make_unique<Logger::LambdaDelegate>(logger_, Logger::Registry::getSink());
+        log_sinks.emplace_back(std::make_unique<Logger::LambdaDelegate>(logger_));
       } else {
-        log_delegate_ptr_ =
-            std::make_unique<Logger::DefaultDelegate>(log_mutex_, Logger::Registry::getSink());
+        log_sinks.emplace_back(std::make_unique<Logger::DefaultDelegate>(log_mutex_));
       }
+
+      if (!log_sink_config.empty()) {
+        envoy::config::core::v3::TypedExtensionConfig tec;
+
+        // Avoid leaking exceptions through the C layer which won't work.
+        try {
+          MessageUtil::loadFromYaml(log_sink_config, tec,
+                                    ProtobufMessage::getStrictValidationVisitor());
+        } catch (const EnvoyException& e) {
+          RELEASE_ASSERT(false, fmt::format("invalid config: {}", e.what()));
+        }
+        auto factory =
+            Config::Utility::getAndCheckFactory<Logger::LogSinkFactory>(tec, false);
+
+        ProtobufTypes::MessagePtr message = Config::Utility::translateAnyToFactoryConfig(
+            tec.typed_config(), ProtobufMessage::getStrictValidationVisitor(),
+            *factory);
+        log_sinks.emplace_back(factory->createLogSink(*message));
+      }
+
+      log_delegate_ptr_ = std::make_unique<Logger::BaseSinkDelegate>(Logger::Registry::getSink(),
+                                                                     std::move(log_sinks));
 
       cv_.notifyAll();
     } catch (const Envoy::NoServingException& e) {

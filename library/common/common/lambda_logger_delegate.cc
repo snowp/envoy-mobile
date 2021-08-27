@@ -8,7 +8,7 @@
 namespace Envoy {
 namespace Logger {
 
-void EventTrackingDelegate::logWithStableName(absl::string_view stable_name, absl::string_view,
+void BaseSinkDelegate::logWithStableName(absl::string_view stable_name, absl::string_view,
                                               absl::string_view, absl::string_view msg) {
   if (event_tracker_.track == nullptr) {
     return;
@@ -20,26 +20,17 @@ void EventTrackingDelegate::logWithStableName(absl::string_view stable_name, abs
                        event_tracker_.context);
 }
 
-LambdaDelegate::LambdaDelegate(envoy_logger logger, DelegatingLogSinkSharedPtr log_sink)
-    : EventTrackingDelegate(log_sink), logger_(logger) {
-  setDelegate();
-}
-
-LambdaDelegate::~LambdaDelegate() {
-  restoreDelegate();
-  logger_.release(logger_.context);
+LambdaDelegate::LambdaDelegate(envoy_logger logger)
+    : logger_(logger) {
 }
 
 void LambdaDelegate::log(absl::string_view msg) {
   logger_.log(Data::Utility::copyToBridgeData(msg), logger_.context);
 }
 
-DefaultDelegate::DefaultDelegate(absl::Mutex& mutex, DelegatingLogSinkSharedPtr log_sink)
-    : EventTrackingDelegate(log_sink), mutex_(mutex) {
-  setDelegate();
+DefaultDelegate::DefaultDelegate(absl::Mutex& mutex)
+    : mutex_(mutex) {
 }
-
-DefaultDelegate::~DefaultDelegate() { restoreDelegate(); }
 
 } // namespace Logger
 } // namespace Envoy
