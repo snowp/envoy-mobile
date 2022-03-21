@@ -156,5 +156,5 @@ def envoy_mobile_android_instrumentation_test(name, srcs, deps = [], native_deps
         # custom_package = "io.envoyproxy.envoymobile.tests",
         # test_class = "io.envoyproxy.envoymobile.bazel.EnvoyMobileTestSuite",
         exec_properties = exec_properties,
-        target_device = "@android_test_support//tools/android/emulated_devices/generic_phone:android_23_x86",
+        target_device = "@android_test_support//tools/android/emulated_devices/generic_phone:android_28_x86",
     )
