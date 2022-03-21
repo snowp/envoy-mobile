@@ -136,8 +136,8 @@ jobject native_map_to_map(JNIEnv* env, envoy_map map) {
     auto key = native_data_to_string(env, map.entries[i].key);
     auto value = native_data_to_string(env, map.entries[i].value);
     env->CallObjectMethod(j_hashMap, jmid_hashMapPut, key, value);
-    env->DeleteLocalRef(key);
-    env->DeleteLocalRef(value);
+    // env->DeleteLocalRef(key);
+    // env->DeleteLocalRef(value);
   }
   env->DeleteLocalRef(jcls_hashMap);
   return j_hashMap;

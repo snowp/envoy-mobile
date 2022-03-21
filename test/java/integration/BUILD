@@ -1,5 +1,5 @@
 load("@envoy//bazel:envoy_build_system.bzl", "envoy_package")
-load("@envoy_mobile//bazel:kotlin_test.bzl", "envoy_mobile_android_test")
+load("@envoy_mobile//bazel:kotlin_test.bzl", "envoy_mobile_android_test", "envoy_mobile_android_instrumentation_test")
 
 licenses(["notice"])  # Apache 2
 
@@ -21,6 +21,25 @@ envoy_mobile_android_test(
     deps = [
         "//library/kotlin/io/envoyproxy/envoymobile:envoy_lib",
     ],
+)
+
+envoy_mobile_android_instrumentation_test(
+    name = "android_event_tracker_jni_test",
+    srcs = [
+        "AndroidEventTrackerJniTest.java",
+    ],
+    exec_properties = {
+        # TODO(lfpino): Remove this once the sandboxNetwork=off works for ipv4 localhost addresses.
+        "sandboxNetwork": "standard",
+    },
+    native_deps = [
+        "//test/java/integration/jni:libtest_jni.so",
+        "//test/java/integration/jni:libtest_jni.jnilib",
+    ],
+    deps = [
+        "//test/java/integration/jni:test_jni_java_lib",
+    ],
+    library_path = "test/java/integration/jni",
 )
 
 envoy_mobile_android_test(

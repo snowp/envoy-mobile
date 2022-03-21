@@ -8,6 +8,7 @@
 #include "library/common/jni/jni_support.h"
 #include "library/common/jni/jni_utility.h"
 #include "library/common/jni/jni_version.h"
+#include "library/common/jni/jni_interface.h"
 #include "library/common/main_interface.h"
 
 // NOLINT(namespace-envoy)
@@ -69,7 +70,7 @@ static void jvm_on_exit(void*) {
   jvm_detach_thread();
 }
 
-static void jvm_on_track(envoy_map events, const void* context) {
+void jvm_on_track(envoy_map events, const void* context) {
   jni_log("[Envoy]", "jvm_on_track");
   if (context == nullptr) {
     return;

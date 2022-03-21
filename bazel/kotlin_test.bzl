@@ -1,5 +1,6 @@
 load("@io_bazel_rules_kotlin//kotlin:kotlin.bzl", "kt_jvm_test")
 load("//bazel:kotlin_lib.bzl", "native_lib_name")
+# load("@rules_android//android:rules.bzl", "android_library", "android_local_test", "android_instrumentation_test")
 
 def _internal_kt_test(name, srcs, deps = [], data = [], jvm_flags = [], repository = "", exec_properties = {}):
     # This is to work around the issue where we have specific implementation functionality which
@@ -66,7 +67,7 @@ def envoy_mobile_kt_test(name, srcs, deps = [], repository = "", exec_properties
 
 # A basic macro to run android based (robolectric) tests with native dependencies
 def envoy_mobile_android_test(name, srcs, deps = [], native_deps = [], repository = "", library_path = "library/common/jni", exec_properties = {}):
-    lib_name = native_lib_name(native_deps[0])[3:]
+    lib_name = native_lib_name(native_deps[0])  # [3:]
     native.android_library(
         name = name + "_test_lib",
         custom_package = "io.envoyproxy.envoymobile.test",
@@ -109,4 +110,51 @@ def envoy_mobile_android_test(name, srcs, deps = [], native_deps = [], repositor
             "-Denvoy_jni_library_name={}".format(lib_name),
         ],
         exec_properties = exec_properties,
+    )
+
+# A basic macro to run android based instrumentation tests with native dependencies
+def envoy_mobile_android_instrumentation_test(name, srcs, deps = [], native_deps = [], repository = "", library_path = "library/common/jni", exec_properties = {}):
+    lib_name = native_lib_name(native_deps[0])  # [3:]
+    native.android_library(
+        name = name + "_test_lib",
+        custom_package = "io.envoyproxy.envoymobile.test",
+        # manifest = repository + "//bazel:test_manifest.xml",
+        # visibility = ["//visibility:public"],
+        data = native_deps,
+        exports = deps,
+        # deps = deps,
+        testonly = True,
+        # jvm_flags = [
+        #     "-Djava.library.path={}".format(library_path),
+        #     "-Denvoy_jni_library_name={}".format(lib_name),
+        # ],
+    )
+
+    native.android_binary(
+        name = name + "_fake_test_app",
+        manifest = repository + "//bazel:test_manifest.xml",
+        deps = [
+            name + "_test_lib",
+        ],
+        testonly = True,
+    )
+    native.android_binary(
+        name = name + "_test_app",
+        manifest = repository + "//bazel:test_manifest.xml",
+        instruments = name + "_fake_test_app",
+        deps = [
+            name + "_test_lib",
+        ],
+        testonly = True,
+    )
+
+    native.android_instrumentation_test(
+        name = name,
+        test_app = name + "_test_app",
+        data = native_deps,
+        # manifest = repository + "//bazel:test_manifest.xml",
+        # custom_package = "io.envoyproxy.envoymobile.tests",
+        # test_class = "io.envoyproxy.envoymobile.bazel.EnvoyMobileTestSuite",
+        exec_properties = exec_properties,
+        target_device = "@android_test_support//tools/android/emulated_devices/generic_phone:android_23_x86",
     )

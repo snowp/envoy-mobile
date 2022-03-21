@@ -107,16 +107,30 @@ envoy_mobile_so_to_jni_lib(
     native_dep = "libjava_jni_lib.so",
 )
 
+cc_library(
+    name = "libjava_jni_lib",
+    hdrs = ["jni_interface.h"],
+    srcs = ["jni_interface.cc"],
+    copts = ["-std=c++17"],
+    linkopts = [
+        "-lm",
+    ],
+    deps = [
+        "base_java_jni_lib",
+        "@envoy_mobile_extra_jni_deps//:extra_jni_dep",
+    ],
+)
+
 # Base binary (.so) for JVM testing
 cc_binary(
     name = "libjava_jni_lib.so",
-    srcs = ["jni_interface.cc"],
     copts = ["-std=c++17"],
     linkopts = [
         "-lm",
     ],
     linkshared = True,
     deps = [
+        ":libjava_jni_lib",
         "base_java_jni_lib",
         "@envoy_mobile_extra_jni_deps//:extra_jni_dep",
     ],
